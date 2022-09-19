@@ -1,0 +1,46 @@
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Function:
+    Runtime: nodejs16.x
+    Timeout: 120
+    Handler: index.handler
+
+Resources:
+  S3BucketAPI:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: 'S3BucketAPI'
+      OpenApiVersion: '3.0.2'
+      DefinitionBody:
+        Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: ./swagger.yaml
+      MethodSettings:
+        - ResourcePath: '/*'
+          HttpMethod: '*'
+          MetricsEnabled: true
+      TracingEnabled: true
+  GetS3ObjectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/get-s3-object/
+      Description: To fetch the object from s3 bucket
+  PostS3ObjectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/post-s3-object/
+      Description: To add the object in s3 bucket
+  PutS3ObjectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/put-s3-object/
+      Description: To update the object in s3 bucket
+  DeleteS3ObjectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/delete-s3-object/
+      Description: To delete the object from s3 bucket
+           
+          

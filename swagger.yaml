@@ -1,0 +1,139 @@
+openapi: '3.0.2'
+info:
+  title: S3 Bucket API
+  description: 'CRUD operations on aws s3 buckets.'
+  version: '1.0'
+  contact:
+    email: 'yugal17v@gmail.com'
+servers:
+- url:  https://cb851n0wab.execute-api.ap-south-1.amazonaws.com/s3Operations/
+  description: AWS Server
+paths:
+  /:
+    get:
+      tags:
+      -  Get Object from bucket
+      summary: 'It retrieves the specified object from specified bucket.'
+      
+      responses: 
+        200:
+          description: Successful response
+          content:
+            application/json:
+              schema: 
+                type: string
+                
+        404:
+          description: Not Found
+          content:
+            text/plain:
+              schema:
+                title: Courses Not Found
+                type: string
+        x-amazon-apigateway-integration:
+          type: "aws"
+          httpMethod: "POST"
+          uri: "arn:aws:apigateway:ap-south-1:lambda:path/2015-03-31/functions/arn:aws:lambda:ap-south-1:232065121848:function:training-getS3Object/invocations"
+          responses:
+            default:
+              statusCode: "200"
+          passthroughBehavior: "when_no_match"
+          contentHandling: "CONVERT_TO_TEXT"          
+        
+    post:
+      tags: 
+      - Add Object in bucket
+      summary: 'It creates and add the object in specified bucket'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bucketName:
+                  type: string
+                key:
+                  type: string
+                body:
+                  type: string
+      responses:
+        200:
+          description: 'Object succesfully added in bucket'
+          content:
+            application/json:
+              schema:
+                type: string
+        404:
+          description: Not Found
+          content:
+            text/plain:
+              schema:
+                title: Object Not Found
+                type: string
+          x-amazon-apigateway-integration:
+            type: "aws"
+            httpMethod: "POST"
+            uri: "arn:aws:apigateway:ap-south-1:lambda:path/2015-03-31/functions/arn:aws:lambda:ap-south-1:232065121848:function:training-getS3Object/invocations"
+            responses:
+              default:
+                statusCode: "200"
+            passthroughBehavior: "when_no_match"
+            contentHandling: "CONVERT_TO_TEXT"          
+    put:
+      tags:
+      -  Update the object in bucket
+      summary: 'It updates the specified object from the bucket.'
+      responses: 
+        200:
+          description: Successful response
+          content:
+            application/json:
+              schema: 
+                type: string
+        404:
+          description: Not Found
+          content:
+            text/plain:
+              schema:
+                title: Object Not Found
+                type: string
+      x-amazon-apigateway-integration:
+        type: "aws"
+        httpMethod: "POST"
+        uri: "arn:aws:apigateway:ap-south-1:lambda:path/2015-03-31/functions/arn:aws:lambda:ap-south-1:232065121848:function:training-postS3Object/invocations"
+        responses:
+          default:
+            statusCode: "200"
+        passthroughBehavior: "when_no_match"
+        contentHandling: "CONVERT_TO_TEXT"          
+    delete:
+      tags:
+      -  Delete object from bucket
+      summary: 'It deletes the specified object from the bucket.'
+      responses: 
+        200:
+          description: Successful response
+          content:
+            application/json:
+              schema: 
+                type: string
+                
+        404:
+          description: Not Found
+          content:
+            text/plain:
+              schema:
+                title: Specified object Not Found
+                type: string     
+
+      x-amazon-apigateway-integration:
+        type: "aws"
+        httpMethod: "POST"
+        uri: "arn:aws:apigateway:ap-south-1:lambda:path/2015-03-31/functions/arn:aws:lambda:ap-south-1:232065121848:function:training-deleteS3Object/invocations"
+        responses:
+          default:
+            statusCode: "200"
+        passthroughBehavior: "when_no_match"
+        contentHandling: "CONVERT_TO_TEXT"       
+        
