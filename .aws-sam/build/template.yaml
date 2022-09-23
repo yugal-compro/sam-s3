@@ -1,0 +1,167 @@
+Transform: AWS::Serverless-2016-10-31
+Globals:
+  Function:
+    Runtime: nodejs16.x
+    Timeout: 120
+    Handler: index.handler
+Resources:
+  s3API:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: v1
+  s3APIDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+    - s3GetMethod
+    - s3PostMethod
+    - s3PutMethod
+    - s3DeleteMethod
+    Properties:
+      RestApiId:
+        Ref: s3API
+  LambdaApiGatewayInvoke:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+        - GetS3ObjectFunction
+        - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${s3API}/*/*
+  ApiGatewayModel:
+    Type: AWS::ApiGateway::Model
+    Properties:
+      ContentType: application/json
+      RestApiId:
+        Ref: s3API
+      Schema: {}
+  s3GetMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId:
+        Ref: s3API
+      ResourceId:
+        Fn::GetAtt:
+        - s3API
+        - RootResourceId
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        IntegrationResponses:
+        - ResponseTemplates:
+            application/json: ''
+          ResponseParameters:
+            method.response.header.X-Requested-With: '''*'''
+            method.response.header.Access-Control-Allow-Headers: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,x-requested-with'''
+            method.response.header.Access-Control-Allow-Methods: '''GET,OPTIONS'''
+            method.response.header.Access-Control-Allow-Origin: '''*'''
+          StatusCode: 200
+        Type: AWS
+        Uri:
+          Fn::Sub:
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations
+          - lambdaArn:
+              Fn::GetAtt:
+              - GetS3ObjectFunction
+              - Arn
+  s3PostMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId:
+        Ref: s3API
+      ResourceId:
+        Fn::GetAtt:
+        - s3API
+        - RootResourceId
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+  s3PutMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId:
+        Ref: s3API
+      ResourceId:
+        Fn::GetAtt:
+        - s3API
+        - RootResourceId
+      HttpMethod: PUT
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+  s3DeleteMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId:
+        Ref: s3API
+      ResourceId:
+        Fn::GetAtt:
+        - s3API
+        - RootResourceId
+      HttpMethod: DELETE
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+  GetS3ObjectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: GetS3ObjectFunction
+      Description: To fetch the object from s3 bucket
+    Events:
+      ApiEvent:
+        Type: Api
+        Properties:
+          Path: /
+          Method: GET
+          RestApiId:
+            Ref: s3API
+    Metadata:
+      SamResourceId: GetS3ObjectFunction
+  PostS3ObjectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: PostS3ObjectFunction
+      Description: To add the object in s3 bucket
+    Events:
+      Api:
+        Type: Api
+        Properties:
+          Path: /
+          Method: POST
+    Metadata:
+      SamResourceId: PostS3ObjectFunction
+  PutS3ObjectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: PutS3ObjectFunction
+      Description: To update the object in s3 bucket
+    Events:
+      Api:
+        Type: Api
+        Properties:
+          Path: /
+          Method: PUT
+    Metadata:
+      SamResourceId: PutS3ObjectFunction
+  DeleteS3ObjectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: DeleteS3ObjectFunction
+      Description: To delete the object from s3 bucket
+    Events:
+      Api:
+        Type: Api
+        Properties:
+          Path: /
+          Method: DELETE
+    Metadata:
+      SamResourceId: DeleteS3ObjectFunction
+Outputs:
+  WebEndpoint:
+    Description: API Gateway endpoint URL for Prod stage
+    Value:
+      Fn::Sub: https://${s3API}.execute-api.${AWS::Region}.amazonaws.com/v1/

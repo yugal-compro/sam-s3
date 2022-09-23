@@ -7,40 +7,295 @@ Globals:
     Handler: index.handler
 
 Resources:
-  S3BucketAPI:
-    Type: AWS::Serverless::Api
+  #  DemoGetUserIdApi:
+  #   Type: AWS::ApiGateway::RestApi
+  #   Properties:
+  #     ApiKeySourceType: HEADER
+  #     Description: An API Gateway with a Lambda Integration
+  #     Name: get-user-api
+      
+  #  ApiGatewayResource:
+  #   Type: AWS::ApiGateway::Resource
+  #   Properties:
+  #     ParentId: !GetAtt DemoGetUserIdApi.RootResourceId
+  #     PathPart: '{userId}'
+  #     RestApiId: !Ref DemoGetUserIdApi
+
+  #  ApiGatewayMethod:
+  #   Type: AWS::ApiGateway::Method
+  #   Properties:
+  #     ApiKeyRequired: false
+  #     AuthorizationType: NONE
+  #     HttpMethod: GET
+  #     RequestParameters:
+  #       method.request.path.userId: true
+  #     Integration:
+  #       Credentials: !GetAtt ApiGatewayIamRole.Arn
+  #       IntegrationHttpMethod: POST
+  #       IntegrationResponses:
+  #         - ResponseTemplates: {"application/json": ""}
+  #           ResponseParameters:
+  #             method.response.header.X-Requested-With: "'*'"
+  #             method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,x-requested-with'"
+  #             method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+  #             method.response.header.Access-Control-Allow-Origin: "'*'"
+  #           StatusCode: 200
+  #       PassthroughBehavior: WHEN_NO_TEMPLATES
+  #       RequestTemplates: 
+  #         application/json: "{ \"userId\": \"$input.params('userId')\", \"firstName\": \"$input.params('firstName')\"}"
+  #       TimeoutInMillis: 29000
+  #       Type: AWS
+  #       # RequestParameters:
+  #       #   integration.request.path.userId: method.request.path.userId
+  #       Uri: 
+  #         - 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations'
+  #         - lambdaArn: !GetAtt "DemoGetDetailsFunction.Arn"
+  #     MethodResponses: 
+  #       - ResponseModels: 
+  #           application/json : 'Empty'
+  #         ResponseParameters: 
+  #           method.response.header.X-Requested-With: false
+  #           method.response.header.Access-Control-Allow-Headers: false
+  #           method.response.header.Access-Control-Allow-Methods: false
+  #           method.response.header.Access-Control-Allow-Origin: false
+  #         StatusCode: 200  
+  #     OperationName: 'friendly operation name'
+  #     ResourceId: !Ref ApiGatewayResource
+  #     RestApiId: !Ref DemoGetUserIdApi
+
+  #  ApiGatewayModel:
+  #   Type: AWS::ApiGateway::Model
+  #   Properties:
+  #     ContentType: 'application/json'
+  #     RestApiId: !Ref DemoGetUserIdApi
+  #     Schema: {}
+
+  #  ApiGatewayDeployment:
+  #   Type: AWS::ApiGateway::Deployment
+  #   DependsOn: ApiGatewayMethod
+  #   Properties:
+  #     Description: Lambda API Deployment
+  #     RestApiId: !Ref DemoGetUserIdApi
+
+
+  #  ApiGatewayIamRole:
+  #   Type: AWS::IAM::Role
+  #   Properties:
+  #     AssumeRolePolicyDocument:
+  #       Version: '2012-10-17'
+  #       Statement:
+  #         - Sid: ''
+  #           Effect: 'Allow'
+  #           Principal:
+  #             Service:
+  #               - 'apigateway.amazonaws.com'
+  #           Action:
+  #             - 'sts:AssumeRole'
+  #     Path: '/'
+
+  #  ApiGatewayPolicy:
+  #   Type: AWS::IAM::Policy
+  #   Properties:
+  #     PolicyName: "LambdaAccess"
+  #     PolicyDocument:
+  #       Version: "2012-10-17"
+  #       Statement:
+  #       -
+  #         Effect: 'Allow'
+  #         Action: 'lambda:*'
+  #         Resource: !GetAtt DemoGetDetailsFunction.Arn
+  #     Roles: 
+  #     - 
+  #       !Ref ApiGatewayIamRole
+  s3API:
+     Type: AWS::Serverless::Api
+    #  DependsOn: "GetS3ObjectFunction"
+     Properties:
+      StageName: "v1"  
+  s3APIDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+     - s3GetMethod
+     - s3PostMethod
+     - s3PutMethod
+     - s3DeleteMethod
     Properties:
-      Name: 'S3BucketAPI'
-      OpenApiVersion: '3.0.2'
-      DefinitionBody:
-        Fn::Transform:
-          Name: AWS::Include
-          Parameters:
-            Location: ./swagger.yaml
-      MethodSettings:
-        - ResourcePath: '/*'
-          HttpMethod: '*'
-          MetricsEnabled: true
-      TracingEnabled: true
+      RestApiId:
+        Ref: s3API
+      # StageName: "v1"  
+  LambdaApiGatewayInvoke:
+
+    Type: "AWS::Lambda::Permission"
+
+    Properties:
+
+      Action: "lambda:InvokeFunction"
+
+      FunctionName: !GetAtt "GetS3ObjectFunction.Arn"
+
+      Principal: "apigateway.amazonaws.com"
+
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${s3API}/*/*
+  ApiGatewayModel:
+    Type: AWS::ApiGateway::Model
+    Properties:
+      ContentType: 'application/json'
+      RestApiId: !Ref s3API
+      Schema: {}
+
+  s3GetMethod:
+   Type: AWS::ApiGateway::Method
+   Properties:
+     RestApiId: !Ref s3API
+     ResourceId: !GetAtt 
+       - s3API
+       - RootResourceId
+     HttpMethod: GET
+     AuthorizationType: NONE
+    #  MethodResponses: 
+    #     - ResponseModels: 
+    #         application/json : 'Empty'
+    #       ResponseParameters: 
+    #         method.response.header.X-Requested-With: false
+    #         method.response.header.Access-Control-Allow-Headers: false
+    #         method.response.header.Access-Control-Allow-Methods: false
+    #         method.response.header.Access-Control-Allow-Origin: false
+    #       StatusCode: 200
+     Integration:
+       IntegrationHttpMethod: POST
+       IntegrationResponses:
+          - ResponseTemplates: {"application/json": ""}
+            ResponseParameters:
+              method.response.header.X-Requested-With: "'*'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,x-requested-with'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            StatusCode: 200
+       Type: AWS
+       Uri: !Sub 
+          - 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations'
+          - lambdaArn: !GetAtt "GetS3ObjectFunction.Arn"
+
+    
+  s3PostMethod: 
+    Type: AWS::ApiGateway::Method
+    Properties:
+     RestApiId: !Ref s3API
+     ResourceId: !GetAtt 
+      - s3API
+      - RootResourceId
+     HttpMethod: POST
+     AuthorizationType: NONE
+     Integration:
+       Type: MOCK
+  s3PutMethod:
+     Type: AWS::ApiGateway::Method
+     Properties:
+      RestApiId: !Ref s3API
+      ResourceId: !GetAtt 
+       - s3API
+       - RootResourceId
+      HttpMethod: PUT
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK     
+  s3DeleteMethod:
+      Type: AWS::ApiGateway::Method
+      Properties:
+        RestApiId: !Ref s3API
+        ResourceId: !GetAtt 
+         - s3API
+         - RootResourceId
+        HttpMethod: DELETE
+        AuthorizationType: NONE
+        Integration:
+          Type: MOCK 
+  #  s3APIDeployment:
+  #   Type: AWS::ApiGateway::Deployment
+  #   # DependsOn:
+  #   #   - "s3MethodGet"
+  #   DependsOn: "GetS3ObjectFunction"
+  #   Properties:
+  #     RestApiId:
+  #       Ref: "s3API"
+  #     Description: "Production environment supporting version-1 of the interface."
+  #     StageName: "v1"
+  #  s3:
+  #    Type: "AWS::ApiGateway::Resource"
+  #    Properties:
+  #     RestApiId: !Ref "s3API"
+  #     ParentId: !GetAtt ["s3API", "RootResourceId"]
+  #     PathPart: "s3"   
+  #  s3MethodGet:
+  #    Type: "AWS::ApiGateway::Method"
+  #    Properties:
+  #     RestApiId: !Ref "s3API"
+  #     ResourceId: !Ref "s3"
+  #     HttpMethod: "GET"
+  #     AuthorizationType: "NONE"
+  #     MethodResponses:
+  #       - StatusCode: "200"
+  #     Integration:
+  #       IntegrationHttpMethod: "POST"
+  #       Type: "AWS_PROXY"
+  #       IntegrationResponses:
+  #         - StatusCode: "200"
+  #       # Credentials: !GetAtt [ 3FailureReportingExecuteAPI, Arn ]
+  #       Uri: !Sub
+  #         - "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations"
+  #         - lambdaArn: !GetAtt [ GetS3ObjectFunction, Arn ]
+      
+
   GetS3ObjectFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: functions/get-s3-object/
       Description: To fetch the object from s3 bucket
+    Events:
+      ApiEvent:
+        Type: Api
+        Properties:
+          Path: /
+          Method: GET
+          RestApiId:
+            Ref: s3API
   PostS3ObjectFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: functions/post-s3-object/
-      Description: To add the object in s3 bucket
+      Description: To add the object in s3 bucket  
+    Events:
+      Api:
+        Type: Api
+        Properties:
+          Path: /
+          Method: POST  
   PutS3ObjectFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: functions/put-s3-object/
       Description: To update the object in s3 bucket
+    Events:
+      Api:
+        Type: Api
+        Properties:
+          Path: /
+          Method: PUT     
   DeleteS3ObjectFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: functions/delete-s3-object/
-      Description: To delete the object from s3 bucket
+      Description: To delete the object from s3 bucket   
+    Events:
+      Api:
+        Type: Api
+        Properties:
+          Path: /
+          Method: DELETE             
+
+Outputs:
+  WebEndpoint:
+    Description: "API Gateway endpoint URL for Prod stage"
+    Value: !Sub "https://${s3API}.execute-api.${AWS::Region}.amazonaws.com/v1/"
            
           
