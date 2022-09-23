@@ -30,13 +30,6 @@ Resources:
       Principal: apigateway.amazonaws.com
       SourceArn:
         Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${s3API}/*/*
-  ApiGatewayModel:
-    Type: AWS::ApiGateway::Model
-    Properties:
-      ContentType: application/json
-      RestApiId:
-        Ref: s3API
-      Schema: {}
   s3GetMethod:
     Type: AWS::ApiGateway::Method
     Properties:
@@ -49,6 +42,10 @@ Resources:
       HttpMethod: GET
       AuthorizationType: NONE
       Integration:
+        Credentials:
+          Fn::GetAtt:
+          - ApiGatewayIamRole
+          - Arn
         IntegrationHttpMethod: POST
         IntegrationResponses:
         - ResponseTemplates:
@@ -59,6 +56,7 @@ Resources:
             method.response.header.Access-Control-Allow-Methods: '''GET,OPTIONS'''
             method.response.header.Access-Control-Allow-Origin: '''*'''
           StatusCode: 200
+        PassthroughBehavior: WHEN_NO_TEMPLATES
         Type: AWS
         Uri:
           Fn::Sub:
@@ -67,6 +65,13 @@ Resources:
               Fn::GetAtt:
               - GetS3ObjectFunction
               - Arn
+      MethodResponses:
+      - ResponseParameters:
+          method.response.header.X-Requested-With: false
+          method.response.header.Access-Control-Allow-Headers: false
+          method.response.header.Access-Control-Allow-Methods: false
+          method.response.header.Access-Control-Allow-Origin: false
+        StatusCode: 200
   s3PostMethod:
     Type: AWS::ApiGateway::Method
     Properties:
@@ -79,7 +84,36 @@ Resources:
       HttpMethod: POST
       AuthorizationType: NONE
       Integration:
-        Type: MOCK
+        Credentials:
+          Fn::GetAtt:
+          - ApiGatewayIamRole
+          - Arn
+        IntegrationHttpMethod: POST
+        IntegrationResponses:
+        - ResponseTemplates:
+            application/json: ''
+          ResponseParameters:
+            method.response.header.X-Requested-With: '''*'''
+            method.response.header.Access-Control-Allow-Headers: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,x-requested-with'''
+            method.response.header.Access-Control-Allow-Methods: '''POST,OPTIONS'''
+            method.response.header.Access-Control-Allow-Origin: '''*'''
+          StatusCode: 200
+        PassthroughBehavior: WHEN_NO_TEMPLATES
+        Type: AWS
+        Uri:
+          Fn::Sub:
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations
+          - lambdaArn:
+              Fn::GetAtt:
+              - PostS3ObjectFunction
+              - Arn
+      MethodResponses:
+      - ResponseParameters:
+          method.response.header.X-Requested-With: false
+          method.response.header.Access-Control-Allow-Headers: false
+          method.response.header.Access-Control-Allow-Methods: false
+          method.response.header.Access-Control-Allow-Origin: false
+        StatusCode: 200
   s3PutMethod:
     Type: AWS::ApiGateway::Method
     Properties:
@@ -92,7 +126,36 @@ Resources:
       HttpMethod: PUT
       AuthorizationType: NONE
       Integration:
-        Type: MOCK
+        Credentials:
+          Fn::GetAtt:
+          - ApiGatewayIamRole
+          - Arn
+        IntegrationHttpMethod: POST
+        IntegrationResponses:
+        - ResponseTemplates:
+            application/json: ''
+          ResponseParameters:
+            method.response.header.X-Requested-With: '''*'''
+            method.response.header.Access-Control-Allow-Headers: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,x-requested-with'''
+            method.response.header.Access-Control-Allow-Methods: '''PUT,OPTIONS'''
+            method.response.header.Access-Control-Allow-Origin: '''*'''
+          StatusCode: 200
+        PassthroughBehavior: WHEN_NO_TEMPLATES
+        Type: AWS
+        Uri:
+          Fn::Sub:
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations
+          - lambdaArn:
+              Fn::GetAtt:
+              - PutS3ObjectFunction
+              - Arn
+      MethodResponses:
+      - ResponseParameters:
+          method.response.header.X-Requested-With: false
+          method.response.header.Access-Control-Allow-Headers: false
+          method.response.header.Access-Control-Allow-Methods: false
+          method.response.header.Access-Control-Allow-Origin: false
+        StatusCode: 200
   s3DeleteMethod:
     Type: AWS::ApiGateway::Method
     Properties:
@@ -105,7 +168,69 @@ Resources:
       HttpMethod: DELETE
       AuthorizationType: NONE
       Integration:
-        Type: MOCK
+        Credentials:
+          Fn::GetAtt:
+          - ApiGatewayIamRole
+          - Arn
+        IntegrationHttpMethod: POST
+        IntegrationResponses:
+        - ResponseTemplates:
+            application/json: ''
+          ResponseParameters:
+            method.response.header.X-Requested-With: '''*'''
+            method.response.header.Access-Control-Allow-Headers: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,x-requested-with'''
+            method.response.header.Access-Control-Allow-Methods: '''DELETE,OPTIONS'''
+            method.response.header.Access-Control-Allow-Origin: '''*'''
+          StatusCode: 200
+        PassthroughBehavior: WHEN_NO_TEMPLATES
+        Type: AWS
+        Uri:
+          Fn::Sub:
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations
+          - lambdaArn:
+              Fn::GetAtt:
+              - DeleteS3ObjectFunction
+              - Arn
+      MethodResponses:
+      - ResponseParameters:
+          method.response.header.X-Requested-With: false
+          method.response.header.Access-Control-Allow-Headers: false
+          method.response.header.Access-Control-Allow-Methods: false
+          method.response.header.Access-Control-Allow-Origin: false
+        StatusCode: 200
+  ApiGatewayModel:
+    Type: AWS::ApiGateway::Model
+    Properties:
+      ContentType: application/json
+      RestApiId:
+        Ref: s3API
+      Schema: {}
+  ApiGatewayIamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Sid: ''
+          Effect: Allow
+          Principal:
+            Service:
+            - apigateway.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: /
+  ApiGatewayPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: LambdaAccess
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action: lambda:*
+          Resource: '*'
+      Roles:
+      - Ref: ApiGatewayIamRole
   GetS3ObjectFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -165,3 +290,15 @@ Outputs:
     Description: API Gateway endpoint URL for Prod stage
     Value:
       Fn::Sub: https://${s3API}.execute-api.${AWS::Region}.amazonaws.com/v1/
+  GetS3ObjectFunction:
+    Description: Get Details Function ARN
+    Value:
+      Fn::GetAtt:
+      - GetS3ObjectFunction
+      - Arn
+  ApiGatewayIamRole:
+    Description: IAM Role created for API Gateway
+    Value:
+      Fn::GetAtt:
+      - ApiGatewayIamRole
+      - Arn
