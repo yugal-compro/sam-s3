@@ -7,117 +7,11 @@ Globals:
     Handler: index.handler
 
 Resources:
-  #  DemoGetUserIdApi:
-  #   Type: AWS::ApiGateway::RestApi
-  #   Properties:
-  #     ApiKeySourceType: HEADER
-  #     Description: An API Gateway with a Lambda Integration
-  #     Name: get-user-api
-      
-  #  ApiGatewayResource:
-  #   Type: AWS::ApiGateway::Resource
-  #   Properties:
-  #     ParentId: !GetAtt DemoGetUserIdApi.RootResourceId
-  #     PathPart: '{userId}'
-  #     RestApiId: !Ref DemoGetUserIdApi
-
-  #  ApiGatewayMethod:
-  #   Type: AWS::ApiGateway::Method
-  #   Properties:
-  #     ApiKeyRequired: false
-  #     AuthorizationType: NONE
-  #     HttpMethod: GET
-  #     RequestParameters:
-  #       method.request.path.userId: true
-  #     Integration:
-  #       Credentials: !GetAtt ApiGatewayIamRole.Arn
-  #       IntegrationHttpMethod: POST
-  #       IntegrationResponses:
-  #         - ResponseTemplates: {"application/json": ""}
-  #           ResponseParameters:
-  #             method.response.header.X-Requested-With: "'*'"
-  #             method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,x-requested-with'"
-  #             method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
-  #             method.response.header.Access-Control-Allow-Origin: "'*'"
-  #           StatusCode: 200
-  #       PassthroughBehavior: WHEN_NO_TEMPLATES
-  #       RequestTemplates: 
-  #         application/json: "{ \"userId\": \"$input.params('userId')\", \"firstName\": \"$input.params('firstName')\"}"
-  #       TimeoutInMillis: 29000
-  #       Type: AWS
-  #       # RequestParameters:
-  #       #   integration.request.path.userId: method.request.path.userId
-  #       Uri: 
-  #         - 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations'
-  #         - lambdaArn: !GetAtt "DemoGetDetailsFunction.Arn"
-  #     MethodResponses: 
-  #       - ResponseModels: 
-  #           application/json : 'Empty'
-  #         ResponseParameters: 
-  #           method.response.header.X-Requested-With: false
-  #           method.response.header.Access-Control-Allow-Headers: false
-  #           method.response.header.Access-Control-Allow-Methods: false
-  #           method.response.header.Access-Control-Allow-Origin: false
-  #         StatusCode: 200  
-  #     OperationName: 'friendly operation name'
-  #     ResourceId: !Ref ApiGatewayResource
-  #     RestApiId: !Ref DemoGetUserIdApi
-
-  #  ApiGatewayModel:
-  #   Type: AWS::ApiGateway::Model
-  #   Properties:
-  #     ContentType: 'application/json'
-  #     RestApiId: !Ref DemoGetUserIdApi
-  #     Schema: {}
-
-  #  ApiGatewayDeployment:
-  #   Type: AWS::ApiGateway::Deployment
-  #   DependsOn: ApiGatewayMethod
-  #   Properties:
-  #     Description: Lambda API Deployment
-  #     RestApiId: !Ref DemoGetUserIdApi
-
-
-  #  ApiGatewayIamRole:
-  #   Type: AWS::IAM::Role
-  #   Properties:
-  #     AssumeRolePolicyDocument:
-  #       Version: '2012-10-17'
-  #       Statement:
-  #         - Sid: ''
-  #           Effect: 'Allow'
-  #           Principal:
-  #             Service:
-  #               - 'apigateway.amazonaws.com'
-  #           Action:
-  #             - 'sts:AssumeRole'
-  #     Path: '/'
-
-  #  ApiGatewayPolicy:
-  #   Type: AWS::IAM::Policy
-  #   Properties:
-  #     PolicyName: "LambdaAccess"
-  #     PolicyDocument:
-  #       Version: "2012-10-17"
-  #       Statement:
-  #       -
-  #         Effect: 'Allow'
-  #         Action: 'lambda:*'
-  #         Resource: !GetAtt DemoGetDetailsFunction.Arn
-  #     Roles: 
-  #     - 
-  #       !Ref ApiGatewayIamRole
+ 
   s3API:
      Type: AWS::Serverless::Api
-    #  DependsOn: "GetS3ObjectFunction"
      Properties:
-      StageName: "v1"  
-  # s3Resource:
-  #   Type: AWS::ApiGateway::Resource
-  #   Properties:
-  #     ParentId: !GetAtt s3API.RootResourceId
-  #     PathPart: '/'
-  #     RestApiId: !Ref s3API
+      StageName: "v1"
 
   s3APIDeployment:
     Type: AWS::ApiGateway::Deployment
@@ -129,21 +23,6 @@ Resources:
     Properties:
       RestApiId:
         Ref: s3API
-      # StageName: "v1"  
-  LambdaApiGatewayInvoke:
-
-    Type: "AWS::Lambda::Permission"
-
-    Properties:
-
-      Action: "lambda:InvokeFunction"
-
-      FunctionName: !GetAtt "GetS3ObjectFunction.Arn"
-
-      Principal: "apigateway.amazonaws.com"
-
-      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${s3API}/*/*
-  
 
   s3GetMethod:
    Type: AWS::ApiGateway::Method
@@ -172,8 +51,6 @@ Resources:
           - 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations'
           - lambdaArn: !GetAtt "GetS3ObjectFunction.Arn"
      MethodResponses: 
-        # - ResponseModels: 
-        #     application/json : 'Emp'
          - ResponseParameters: 
             method.response.header.X-Requested-With: false
             method.response.header.Access-Control-Allow-Headers: false
@@ -290,47 +167,14 @@ Resources:
              method.response.header.Access-Control-Allow-Methods: false
              method.response.header.Access-Control-Allow-Origin: false
             StatusCode: 200  
-       
-  ApiGatewayModel:
-    Type: AWS::ApiGateway::Model
+  LambdaApiGatewayInvoke:
+    Type: "AWS::Lambda::Permission"
     Properties:
-      ContentType: 'application/json'
-      RestApiId: !Ref s3API
-      Schema: {}
-  #  s3APIDeployment:
-  #   Type: AWS::ApiGateway::Deployment
-  #   # DependsOn:
-  #   #   - "s3MethodGet"
-  #   DependsOn: "GetS3ObjectFunction"
-  #   Properties:
-  #     RestApiId:
-  #       Ref: "s3API"
-  #     Description: "Production environment supporting version-1 of the interface."
-  #     StageName: "v1"
-  #  s3:
-  #    Type: "AWS::ApiGateway::Resource"
-  #    Properties:
-  #     RestApiId: !Ref "s3API"
-  #     ParentId: !GetAtt ["s3API", "RootResourceId"]
-  #     PathPart: "s3"   
-  #  s3MethodGet:
-  #    Type: "AWS::ApiGateway::Method"
-  #    Properties:
-  #     RestApiId: !Ref "s3API"
-  #     ResourceId: !Ref "s3"
-  #     HttpMethod: "GET"
-  #     AuthorizationType: "NONE"
-  #     MethodResponses:
-  #       - StatusCode: "200"
-  #     Integration:
-  #       IntegrationHttpMethod: "POST"
-  #       Type: "AWS_PROXY"
-  #       IntegrationResponses:
-  #         - StatusCode: "200"
-  #       # Credentials: !GetAtt [ 3FailureReportingExecuteAPI, Arn ]
-  #       Uri: !Sub
-  #         - "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations"
-  #         - lambdaArn: !GetAtt [ GetS3ObjectFunction, Arn ]
+      Action: "lambda:InvokeFunction"
+      FunctionName: !GetAtt "GetS3ObjectFunction.Arn"
+      Principal: "apigateway.amazonaws.com"
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${s3API}/*/*
+
   ApiGatewayIamRole:
     Type: AWS::IAM::Role
     Properties:
@@ -413,9 +257,6 @@ Outputs:
   WebEndpoint:
     Description: "API Gateway endpoint URL for Prod stage"
     Value: !Sub "https://${s3API}.execute-api.${AWS::Region}.amazonaws.com/v1/"
-  GetS3ObjectFunction:
-    Description: "Get Details Function ARN"
-    Value: !GetAtt GetS3ObjectFunction.Arn
   ApiGatewayIamRole:
     Description: "IAM Role created for API Gateway"
     Value: !GetAtt ApiGatewayIamRole.Arn  
