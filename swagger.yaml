@@ -5,9 +5,9 @@ info:
   version: '1.0'
   contact:
     email: 'yugal17v@gmail.com'
-servers:
-- url:  https://cb851n0wab.execute-api.ap-south-1.amazonaws.com/s3Operations/
-  description: AWS Server
+# servers:
+# - url:  https://cb851n0wab.execute-api.ap-south-1.amazonaws.com/s3Operations/
+#   description: AWS Server
 paths:
   /:
     get:
@@ -21,7 +21,16 @@ paths:
           content:
             application/json:
               schema: 
-                type: string
+                type: object
+                properties:
+                  isBase64Encoded:
+                    type: boolean
+                  statusCode:
+                    type: integer
+                  headers:
+                    type: object
+                  body:
+                    type: string      
                 
         404:
           description: Not Found
@@ -30,15 +39,17 @@ paths:
               schema:
                 title: Courses Not Found
                 type: string
-        x-amazon-apigateway-integration:
-          type: "aws"
+      x-amazon-apigateway-integration:
+          
           httpMethod: "POST"
-          uri: "arn:aws:apigateway:ap-south-1:lambda:path/2015-03-31/functions/arn:aws:lambda:ap-south-1:232065121848:function:training-getS3Object/invocations"
+          uri:
+            Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetS3ObjectFunction.Arn}/invocations
           responses:
             default:
               statusCode: "200"
           passthroughBehavior: "when_no_match"
-          contentHandling: "CONVERT_TO_TEXT"          
+          contentHandling: "CONVERT_TO_TEXT"  
+          type: "aws"        
         
     post:
       tags: 
@@ -71,10 +82,11 @@ paths:
               schema:
                 title: Object Not Found
                 type: string
-          x-amazon-apigateway-integration:
+      x-amazon-apigateway-integration:
             type: "aws"
             httpMethod: "POST"
-            uri: "arn:aws:apigateway:ap-south-1:lambda:path/2015-03-31/functions/arn:aws:lambda:ap-south-1:232065121848:function:training-getS3Object/invocations"
+            uri: 
+              Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PostS3ObjectFunction.Arn}/invocations
             responses:
               default:
                 statusCode: "200"
@@ -101,7 +113,8 @@ paths:
       x-amazon-apigateway-integration:
         type: "aws"
         httpMethod: "POST"
-        uri: "arn:aws:apigateway:ap-south-1:lambda:path/2015-03-31/functions/arn:aws:lambda:ap-south-1:232065121848:function:training-postS3Object/invocations"
+        uri: 
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PutS3ObjectFunction.Arn}/invocations
         responses:
           default:
             statusCode: "200"
@@ -130,7 +143,8 @@ paths:
       x-amazon-apigateway-integration:
         type: "aws"
         httpMethod: "POST"
-        uri: "arn:aws:apigateway:ap-south-1:lambda:path/2015-03-31/functions/arn:aws:lambda:ap-south-1:232065121848:function:training-deleteS3Object/invocations"
+        uri: 
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${DeleteS3ObjectFunction.Arn}/invocations
         responses:
           default:
             statusCode: "200"
